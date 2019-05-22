@@ -5,12 +5,21 @@ import android.content.DialogInterface;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
+import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.gms.tasks.Task;
+import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.zxing.Result;
 
 import static android.Manifest.permission.CAMERA;
@@ -21,6 +30,7 @@ public class QrCodeScannerActivity extends AppCompatActivity implements ZXingSca
 
     private static final int REQUEST_CAMERA = 1;
     private ZXingScannerView qrCodeScanner;
+    FirebaseFirestore firestore;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -34,6 +44,7 @@ public class QrCodeScannerActivity extends AppCompatActivity implements ZXingSca
                 requestPermission();
             }
         }
+        firestore = FirebaseFirestore.getInstance();
 
     }
 
@@ -103,8 +114,8 @@ public class QrCodeScannerActivity extends AppCompatActivity implements ZXingSca
 
     @Override
     public void handleResult(Result result) {
-        String scanResult = result.getText();
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        final String scanResult = result.getText();
+        final AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Scan Result");
         builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
             @Override
@@ -112,8 +123,23 @@ public class QrCodeScannerActivity extends AppCompatActivity implements ZXingSca
                 qrCodeScanner.resumeCameraPreview(QrCodeScannerActivity.this);
             }
         });
-        builder.setMessage(scanResult);
-        AlertDialog alert = builder.create();
-        alert.show();
+        final DocumentReference doc_ref = firestore.collection("users").document(scanResult);
+        doc_ref.get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+            @Override
+            public void onSuccess(DocumentSnapshot documentSnapshot) {
+                if(documentSnapshot != null) {
+                    boolean tmp = documentSnapshot.getBoolean("valid");
+                    if(tmp) {
+                        builder.setMessage(scanResult + "   User is valid!!");
+                    }else{
+                        builder.setMessage(scanResult + "   User is NOT valid!!");
+                    }
+                    AlertDialog alert = builder.create();
+                    alert.show();
+                }else {
+                    Log.d("LOGGER", "No such document");
+                }
+            }
+        });
     }
 }
