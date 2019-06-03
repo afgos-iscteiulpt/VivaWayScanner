@@ -128,7 +128,7 @@ public class QrCodeScannerActivity extends AppCompatActivity implements ZXingSca
             @Override
             public void onSuccess(DocumentSnapshot documentSnapshot) {
                 if(documentSnapshot != null) {
-                    boolean tmp = documentSnapshot.getBoolean("valid");
+                    boolean tmp = documentSnapshot.getBoolean("Valid");
                     if(tmp) {
                         builder.setMessage(scanResult + "   User is valid!!");
                     }else{
